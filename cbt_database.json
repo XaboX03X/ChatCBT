@@ -1,0 +1,30 @@
+{
+    "Fear": {
+        "assessment": "Ask the user what specifically is triggering their anxiety right now and what they fear might happen.",
+        "intervention": "Guide the user through the 4-7-8 breathing technique (inhale for 4 seconds, hold for 7, exhale for 8) or the 5-4-3-2-1 grounding exercise to bring them back to the present moment."
+    },
+    "Sadness": {
+        "assessment": "Gently ask the user how long they have been feeling this way and if there was a specific event that led to this feeling.",
+        "intervention": "Suggest Behavioral Activation: encourage them to do one very small, manageable task (like drinking a glass of water or stepping outside for 2 minutes) to break the cycle of depressive immobility."
+    },
+    "Anger": {
+        "assessment": "Ask the user to identify the specific boundary they feel was crossed or the injustice they experienced.",
+        "intervention": "Teach the 'STOP' skill (Stop, Take a breath, Observe, Proceed mindfully) to prevent impulsive reactions, followed by a suggestion to do a brief physical activity to release adrenaline."
+    },
+    "Disgust": {
+        "assessment": "Ask the user what specific situation or behavior is making them feel repulsed or uncomfortable.",
+        "intervention": "Use Cognitive Defusion: help them recognize that their feeling of disgust is just a temporary emotional reaction, not a permanent state. Suggest stepping away from the trigger if possible."
+    },
+    "Surprise": {
+        "assessment": "Ask the user if this unexpected event feels overwhelming, and what their immediate thought was when it happened.",
+        "intervention": "Provide a grounding statement. Remind them that it is normal to feel off-balance when things change suddenly, and encourage them to take a few deep breaths before making any decisions."
+    },
+    "Joy": {
+        "assessment": "Reflect their positive energy. Ask them what they are most proud of or what they enjoyed the most about their day.",
+        "intervention": "Encourage the practice of Gratitude Logging. Suggest they write down three specific things that contributed to this feeling so they can look back on it during harder days."
+    },
+    "Neutral": {
+        "assessment": "Ask the user an open-ended question about how their day is going or what is currently on their mind.",
+        "intervention": "Suggest a general mindfulness check-in, asking them to scan their body for any hidden tension and release it."
+    }
+}
