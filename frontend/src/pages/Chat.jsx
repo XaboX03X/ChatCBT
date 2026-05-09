@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, BrainCircuit, Heart, User, AlertTriangle } from 'lucide-react';
+import { Send, BrainCircuit, Heart, User, AlertTriangle, LifeBuoy } from 'lucide-react'; // Added LifeBuoy
 import { motion, AnimatePresence } from 'framer-motion';
 import AnxietyMeter from '../components/AnxietyMeter';
+import ExerciseModal from '../components/ExerciseModal'; // Import the new modal
 
 export default function Chat() {
   const [inputText, setInputText] = useState('');
@@ -10,8 +11,11 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   
   // Dynamic CBT Engine States
-  const [cbtFlow, setCbtFlow] = useState('idle'); // 'idle' | 'standard' | 'crisis'
+  const [cbtFlow, setCbtFlow] = useState('idle');
   const [cbtStage, setCbtStage] = useState(1); 
+  
+  // Toolkit State
+  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   
   const messagesEndRef = useRef(null);
 
@@ -25,11 +29,10 @@ export default function Chat() {
     let timer1, timer2, resetTimer;
     
     if (isTyping && cbtFlow !== 'idle') {
-      setCbtStage(1); // Stage 1
-      timer1 = setTimeout(() => setCbtStage(2), 1000); // Stage 2
-      timer2 = setTimeout(() => setCbtStage(3), 2200); // Stage 3
+      setCbtStage(1);
+      timer1 = setTimeout(() => setCbtStage(2), 1000);
+      timer2 = setTimeout(() => setCbtStage(3), 2200);
     } else if (!isTyping && cbtFlow !== 'idle') {
-      // Hold the final stage for 3 seconds after AI replies, then reset
       resetTimer = setTimeout(() => {
         setCbtFlow('idle');
       }, 3000);
@@ -49,7 +52,6 @@ export default function Chat() {
     const currentText = inputText;
     setInputText('');
     
-    // 1. Immediately inject the user's message into the UI
     setMessages((prev) => [...prev, { 
       id: Date.now(), 
       text: currentText, 
@@ -58,31 +60,26 @@ export default function Chat() {
     }]);
 
     try {
-      // 2. THE PRE-FLIGHT CHECK: Let the NLP model determine the safety state
       const intentResponse = await fetch('http://localhost:5000/api/analyze-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: currentText })
       });
-      
       const intentData = await intentResponse.json();
       
-      // 3. Trigger the appropriate UI animation sequence
       setCbtFlow(intentData.intent === 'CRISIS' ? 'crisis' : 'standard');
       setIsTyping(true);
 
-      // 4. THE GENERATION: Execute the heavy CBT inference pipeline
       const chatResponse = await fetch('http://localhost:5000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: currentText, history: messages.map(m => ({ role: m.sender, content: m.text })) })
       });
-      
       const chatData = await chatResponse.json();
       
       setMessages((prev) => [...prev, { 
         id: Date.now() + 1, 
-        text: chatData.reply || chatData.cbt_response, // Fallback handles both index.js and server.js responses
+        text: chatData.reply || chatData.cbt_response, 
         sender: 'ai', 
         time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
       }]);
@@ -97,7 +94,6 @@ export default function Chat() {
     }
   };
 
-  // Helper to render the dynamic flow stages
   const renderFlow = () => {
     if (cbtFlow === 'idle') {
       return (
@@ -144,7 +140,6 @@ export default function Chat() {
           })}
         </div>
 
-        {/* Processing Status Badge */}
         <AnimatePresence>
             {isTyping && (
                 <motion.div
@@ -163,15 +158,13 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full p-4 gap-4 bg-slate-50/50">
+    <div className="flex h-[calc(100vh-64px)] w-full p-4 gap-4 bg-slate-50/50 relative">
       <div className="flex-1 flex flex-col bg-white/60 backdrop-blur-xl border border-white shadow-xl rounded-3xl overflow-hidden relative">
         
-        {/* DYNAMIC CBT BREADCRUMB HEADER */}
         <div className="h-16 flex items-center justify-between px-8 border-b border-white/20 bg-white/40 backdrop-blur-md shrink-0">
             {renderFlow()}
         </div>
         
-        {/* Chat Feed */}
         <div className="flex-1 overflow-y-auto p-8 space-y-6">
           <AnimatePresence initial={false}>
             {messages.length === 0 ? (
@@ -189,7 +182,6 @@ export default function Chat() {
                     >
                         <div className={`flex items-end gap-3 max-w-[80%] ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                             
-                            {/* Avatars */}
                             <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center shadow-sm ${
                                 msg.sender === 'user' 
                                 ? 'bg-slate-200 text-slate-500' 
@@ -198,7 +190,6 @@ export default function Chat() {
                                 {msg.sender === 'user' ? <User size={16} strokeWidth={2.5} /> : <Heart size={16} strokeWidth={2.5} fill="currentColor" />}
                             </div>
 
-                            {/* Chat Bubble */}
                             <div className={`p-4 px-6 rounded-2xl shadow-sm ${
                                 msg.sender === 'user' 
                                 ? 'bg-[#7B7AFA] text-white rounded-br-sm' 
@@ -212,7 +203,6 @@ export default function Chat() {
             )}
           </AnimatePresence>
           
-          {/* Typing Indicator with AI Avatar */}
           {isTyping && (
              <div className="flex items-end gap-3 w-full justify-start mt-2">
                 <div className="w-8 h-8 shrink-0 rounded-full bg-[#7B7AFA] text-white flex items-center justify-center shadow-sm">
@@ -228,26 +218,44 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Input Dock */}
+        {/* Updated Input Dock with Toolkit Button */}
         <div className="p-4 bg-white/50 border-t border-white shrink-0">
-            <form onSubmit={handleSend} className="relative flex items-center max-w-3xl mx-auto">
-                <input 
-                    value={inputText} 
-                    onChange={(e) => setInputText(e.target.value)} 
-                    className="w-full p-4 pl-6 pr-16 bg-white rounded-full shadow-inner border border-slate-200 focus:ring-2 ring-[#7B7AFA] outline-none" 
-                    placeholder="Type your message..." 
-                />
-                <button type="submit" disabled={isTyping} className="absolute right-2 p-3 bg-[#7B7AFA] text-white rounded-full hover:bg-indigo-600 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    <Send size={18} />
+            <div className="flex items-center max-w-3xl mx-auto gap-3">
+                {/* TOOLKIT BUTTON */}
+                <button
+                    type="button"
+                    onClick={() => setIsExerciseModalOpen(true)}
+                    className="p-3.5 bg-white text-[#7B7AFA] rounded-full shadow-sm border border-slate-200 hover:bg-indigo-50 hover:scale-105 transition-all flex items-center justify-center"
+                    title="CBT Safety Toolkit"
+                >
+                    <LifeBuoy size={22} strokeWidth={2.5} />
                 </button>
-            </form>
+
+                {/* EXISTING FORM */}
+                <form onSubmit={handleSend} className="relative flex-1 flex items-center">
+                    <input 
+                        value={inputText} 
+                        onChange={(e) => setInputText(e.target.value)} 
+                        className="w-full p-4 pl-6 pr-16 bg-white rounded-full shadow-inner border border-slate-200 focus:ring-2 ring-[#7B7AFA] outline-none" 
+                        placeholder="Type your message..." 
+                    />
+                    <button type="submit" disabled={isTyping} className="absolute right-2 p-3 bg-[#7B7AFA] text-white rounded-full hover:bg-indigo-600 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        <Send size={18} />
+                    </button>
+                </form>
+            </div>
         </div>
       </div>
       
-      {/* Right Sidebar */}
       <div className="w-80 shrink-0">
           <AnxietyMeter currentScore={anxietyScore} />
       </div>
+
+      {/* Render the Modal */}
+      <ExerciseModal 
+        isOpen={isExerciseModalOpen} 
+        onClose={() => setIsExerciseModalOpen(false)} 
+      />
     </div>
   );
 }

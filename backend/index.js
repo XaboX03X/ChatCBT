@@ -13,76 +13,66 @@ app.use(express.json());
 
 let currentSessionAnxiety = 4.0;
 
-// --- NEW PRE-FLIGHT CLASSIFIER ENDPOINT ---
+// --- 1. PRE-FLIGHT SAFETY CLASSIFIER ---
 app.post('/api/analyze-intent', async (req, res) => {
     const { message } = req.body;
     try {
-        const prompt = `You are a clinical safety classifier. Analyze the user's input for severe psychological distress, self-harm, or suicidal ideation.
-If the input contains severe distress or risk, respond with exactly one word: CRISIS.
-If the input is standard negative emotion, anxiety, or general chat, respond with exactly one word: SAFE.
-Do not provide any explanation.
-
-User Input: "${message}"`;
+        const prompt = `Analyze for severe distress or self-harm. Respond with one word: CRISIS or SAFE. Input: "${message}"`;
 
         const response = await fetch('http://127.0.0.1:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'phi3', // Use Phi-3 for blazing-fast token inference
+                model: 'ALIENTELLIGENCE/mindwell',
                 prompt: prompt,
                 stream: false,
-                options: {
-                    temperature: 0.0, // Strict, deterministic output
-                    num_predict: 3    // Stop generating immediately to maximize speed
-                }
+                options: { temperature: 0.0, num_predict: 5 }
             })
         });
 
         const data = await response.json();
-        const output = data.response ? data.response.trim().toUpperCase() : 'SAFE';
-        
-        const intent = output.includes('CRISIS') ? 'CRISIS' : 'SAFE';
-        console.log(`\n[0] Pre-Flight Intent Checked: ${intent}`);
-        
+        const intent = data.response?.toUpperCase().includes('CRISIS') ? 'CRISIS' : 'SAFE';
         res.json({ intent });
 
     } catch (error) {
-        console.error("Intent Pipeline Error:", error);
-        res.json({ intent: 'SAFE' }); // Graceful degradation
+        res.json({ intent: 'SAFE' }); 
     }
 });
 
-// --- EXISTING CHAT ENDPOINT ---
+// --- 2. MAIN CHAT PIPELINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         const { message, history } = req.body;
         
-        console.log(`[1] Received message: "${message}"`);
+        // Re-check intent to inform the response generation logic
+        const safetyRes = await fetch('http://127.0.0.1:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'ALIENTELLIGENCE/mindwell',
+                prompt: `Analyze for crisis: "${message}"`,
+                stream: false,
+                options: { num_predict: 5 }
+            })
+        });
+        const safetyData = await safetyRes.json();
+        const intent = safetyData.response?.toUpperCase().includes('CRISIS') ? 'CRISIS' : 'SAFE';
 
-        console.log(`[2] Routing to ONNX Emotion Classifier...`);
+        // Get emotions and calculate the Anxiety Meter shift
         const emotions = await analyzeEmotion(message);
-        console.log(`    Detected: ${emotions[0].label} (${(emotions[0].score * 100).toFixed(1)}%)`);
-
-        console.log(`[3] Calculating Anxiety Shift...`);
         currentSessionAnxiety = calculateAnxietyEMA(emotions, currentSessionAnxiety);
-        console.log(`    New Anxiety Score: ${currentSessionAnxiety}`);
 
-        console.log(`[4] Routing to Ollama (Phi-3)...`);
-        const cbtResponse = await generateCBTResponse(message, history, emotions);
+        // Generate response with localized Malaysian context
+        const cbtResponse = await generateCBTResponse(message, history, emotions, intent);
 
-        console.log(`[5] Pipeline complete. Sending to UI.`);
         res.json({
             reply: cbtResponse,
             anxietyScore: currentSessionAnxiety
         });
 
     } catch (error) {
-        console.error("Orchestrator Pipeline Error:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 ChatCBT Orchestrator running on http://localhost:${PORT}`);
-    analyzeEmotion("system boot"); // Warm up the ONNX classifier
-});
+app.listen(PORT, () => console.log(`🚀 ChatCBT Backend running on http://localhost:${PORT}`));

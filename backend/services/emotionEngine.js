@@ -14,7 +14,7 @@ export async function analyzeEmotion(text) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'phi3', 
+                model: 'ALIENTELLIGENCE/mindwell', 
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: text }

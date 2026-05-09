@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Heart, Code, Database, Cpu, MessageSquare, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import TermsModal from '../components/TermsModal';
 
 // Improved Section: Now flexible in height but enforces vertical breathing room
@@ -18,9 +18,15 @@ const Section = ({ children, className = "" }) => (
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 1. Set up a reference to track when the bottom section is on screen
+  const finaleRef = useRef(null);
+  
+  // 2. This hook returns 'true' when 50% of the finale section is visible in the viewport
+  const isFinaleInView = useInView(finaleRef, { amount: 0.5 });
 
   return (
-    <div className="w-full bg-slate-50">
+    <div className="w-full bg-slate-50 relative">
       
       {/* 1. STICKY LOGO */}
       <div className="fixed top-0 left-0 p-8 z-50 flex items-center gap-3 pointer-events-none">
@@ -29,6 +35,19 @@ export default function Home() {
         </div>
         <span className="font-bold text-slate-800 text-lg tracking-tight">ChatCBT</span>
       </div>
+
+      {/* 1.5. FLOATING START SESSION BUTTON (Hides when finale is in view) */}
+      {!isFinaleInView && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <motion.button
+            layoutId="start-session-btn" // This ID connects the two buttons for the magic move
+            onClick={() => setIsModalOpen(true)}
+            className="px-8 py-4 bg-[#7B7AFA] text-white rounded-full text-lg font-medium hover:bg-indigo-600 transition-colors shadow-xl hover:shadow-indigo-300 active:scale-95 cursor-pointer"
+          >
+            Start Session
+          </motion.button>
+        </div>
+      )}
 
       {/* 2. HERO SECTION */}
       <Section className="bg-linear-to-b from-white to-indigo-50/20">
@@ -85,19 +104,26 @@ export default function Home() {
 
       {/* 5. START SESSION (Grand Finale) */}
       <Section className="bg-linear-to-t from-slate-100 to-slate-50">
-        <div className="flex flex-col items-center max-w-2xl">
+        {/* We attach the ref here so Framer Motion knows when this div is on screen */}
+        <div ref={finaleRef} className="flex flex-col items-center max-w-2xl w-full">
             <BrainCircuit size={64} className="text-[#7B7AFA] mb-8" />
             <blockquote className="text-3xl font-medium text-slate-800 text-center italic mb-12 leading-snug">
                 "AI-powered clarity meets clinical precision. Our engine translates complex CBT methodologies into actionable, empathetic advice for your well-being."
             </blockquote>
+            
+            {/* IN-FLOW BUTTON (Shows only when finale is in view) */}
+            <div className="h-20 flex items-center justify-center"> {/* Fixed height wrapper prevents text jumping */}
+              {isFinaleInView && (
+                <motion.button
+                  layoutId="start-session-btn" // Same ID as the floating button!
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-12 py-5 bg-[#7B7AFA] text-white rounded-full text-xl font-medium hover:bg-indigo-600 transition-colors shadow-xl hover:shadow-indigo-300 active:scale-95 cursor-pointer"
+                >
+                  Start Session
+                </motion.button>
+              )}
+            </div>
         </div>
-        
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="px-12 py-5 bg-[#7B7AFA] text-white rounded-full text-lg font-medium hover:bg-indigo-600 transition-all shadow-lg hover:shadow-indigo-300 active:scale-95"
-        >
-          Start Session
-        </button>
         
         <div className="absolute bottom-8 text-slate-400 text-sm">
             CSCI 4402 • ChatCBT © 2026

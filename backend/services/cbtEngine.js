@@ -1,35 +1,52 @@
 // backend/services/cbtEngine.js
 
-export async function generateCBTResponse(userMessage, chatHistory, emotionContext) {
+export async function generateCBTResponse(userMessage, chatHistory, emotionContext, intent = 'SAFE') {
     const primaryEmotion = emotionContext[0]?.label || 'neutral';
     
-    const systemPrompt = {
-        role: "system",
-        content: `You are ChatCBT, an empathetic cognitive behavioral therapy assistant. 
-        The classification engine has detected the user is currently experiencing: ${primaryEmotion}. 
-        Acknowledge their feelings subtly and provide a clinically safe, grounding CBT response.`
-    };
+    // 1. MANDATORY MALAYSIAN DATA
+    const MY_HOTLINES = "Befrienders KL: 03-7627 2929, Talian Kasih: 15999, or Emergency Services: 999";
 
-    const messages = [systemPrompt, ...chatHistory, { role: "user", content: userMessage }];
+    // 2. IF CRISIS, DO NOT TRUST THE AI TO GENERATE - USE A TEMPLATE
+    if (intent === 'CRISIS') {
+        return `I'm here with you, but I'm very concerned about your safety. Please reach out to a professional who can help right now: ${MY_HOTLINES}. You don't have to go through this alone.`;
+    }
+
+    // 3. STANDARD FLOW (For non-crisis messages)
+    const systemRole = `You are ChatCBT, an empathetic AI specializing in Cognitive Behavioral Therapy. 
+    Current Emotion: ${primaryEmotion}.
+    Instructions:
+    - Keep responses brief (max 3 sentences).
+    - If you mention a hotline, you MUST ONLY use: ${MY_HOTLINES}.
+    - Do NOT mention US-based services or 988.`;
+
+    const messages = [
+        { role: "system", content: systemRole },
+        ...chatHistory, 
+        { role: "user", content: userMessage }
+    ];
 
     try {
         const response = await fetch('http://127.0.0.1:11434/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'phi3', 
+                model: 'ALIENTELLIGENCE/mindwell', 
                 messages: messages,
                 stream: false 
             })
         });
 
-        if (!response.ok) throw new Error("Ollama connection failed");
-
         const data = await response.json();
-        return data.message.content;
+        let aiContent = data.message.content;
+
+        // 4. THE FAILSAFE (Nuke any US numbers if the AI hallucinations them anyway)
+        if (aiContent.includes("988") || aiContent.includes("1-800")) {
+            return `It sounds like you're going through a lot. Please contact local Malaysian support at ${MY_HOTLINES}. Can we focus on a small grounding exercise together?`;
+        }
+
+        return aiContent;
 
     } catch (error) {
-        console.error("Generative Engine Error:", error);
-        return "I am experiencing a slight system delay, but I am here with you. Could you tell me a bit more about what you are feeling?";
+        return `I'm here for you. If you're in distress, please contact Befrienders KL at 03-7627 2929.`;
     }
 }
