@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Heart, Code, Database, Cpu, MessageSquare, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
+import AuthModal from '../components/AuthModal';
 import TermsModal from '../components/TermsModal';
 
-// Improved Section: Now flexible in height but enforces vertical breathing room
 const Section = ({ children, className = "" }) => (
   <motion.section 
     initial={{ y: 50, opacity: 0 }}
@@ -17,18 +17,21 @@ const Section = ({ children, className = "" }) => (
 );
 
 export default function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // 1. Set up a reference to track when the bottom section is on screen
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+
   const finaleRef = useRef(null);
-  
-  // 2. This hook returns 'true' when 50% of the finale section is visible in the viewport
   const isFinaleInView = useInView(finaleRef, { amount: 0.5 });
+
+  // Callback passed to AuthModal: When standard login succeeds, open Terms
+  const handleAuthSuccess = () => {
+    setIsTermsModalOpen(true);
+  };
 
   return (
     <div className="w-full bg-slate-50 relative">
       
-      {/* 1. STICKY LOGO */}
+      {/* STICKY LOGO */}
       <div className="fixed top-0 left-0 p-8 z-50 flex items-center gap-3 pointer-events-none">
         <div className="w-10 h-10 rounded-full bg-[#7B7AFA] text-white flex items-center justify-center shadow-lg pointer-events-auto">
           <Heart size={20} fill="currentColor" strokeWidth={0} />
@@ -36,12 +39,12 @@ export default function Home() {
         <span className="font-bold text-slate-800 text-lg tracking-tight">ChatCBT</span>
       </div>
 
-      {/* 1.5. FLOATING START SESSION BUTTON (Hides when finale is in view) */}
+      {/* FLOATING START SESSION BUTTON */}
       {!isFinaleInView && (
         <div className="fixed bottom-8 right-8 z-50">
           <motion.button
-            layoutId="start-session-btn" // This ID connects the two buttons for the magic move
-            onClick={() => setIsModalOpen(true)}
+            layoutId="start-session-btn"
+            onClick={() => setIsAuthModalOpen(true)}
             className="px-8 py-4 bg-[#7B7AFA] text-white rounded-full text-lg font-medium hover:bg-indigo-600 transition-colors shadow-xl hover:shadow-indigo-300 active:scale-95 cursor-pointer"
           >
             Start Session
@@ -49,7 +52,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 2. HERO SECTION */}
+      {/* HERO SECTION */}
       <Section className="bg-linear-to-b from-white to-indigo-50/20">
         <div className="relative mb-8 flex items-center justify-center">
             <motion.div animate={{ scale: [1, 1.4, 1], opacity: [0, 0.4, 0] }} transition={{ duration: 5, repeat: Infinity }} className="absolute w-24 h-24 rounded-full bg-indigo-200/50 blur-xl z-0"/>
@@ -63,7 +66,7 @@ export default function Home() {
         </p>
       </Section>
 
-      {/* 3. CLINICAL VALIDATION */}
+      {/* CLINICAL VALIDATION */}
       <Section className="bg-white">
         <h2 className="text-3xl font-bold mb-24 text-slate-800">Clinically & Technically Verified</h2>
         <div className="flex flex-wrap gap-10 items-center justify-center">
@@ -81,14 +84,14 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* 4. TECH STACK */}
+      {/* TECH STACK */}
       <Section className="bg-slate-50">
         <h2 className="text-3xl font-bold mb-16 text-slate-800">Engineering the Future</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl">
            {[ 
               {icon: <Code size={32}/>, title: "React", desc: "Dynamic component architecture ensuring a fluid, responsive interface for session management."}, 
               {icon: <Cpu size={32}/>, title: "Ollama (Phi-3)", desc: "Privacy-first local LLM inference engine providing zero-latency clinical NLP classification."}, 
-              {icon: <Database size={32}/>, title: "PostgreSQL", desc: "Structured relational storage for secure session history and longitudinal behavioral analytics."},
+              {icon: <Database size={32}/>, title: "Appwrite", desc: "Containerized local edge-database managing secure anonymous guest tokens, encrypted user sessions, and CBT logs."},
               {icon: <Zap size={32}/>, title: "Node/Express", desc: "High-performance backend orchestration for real-time inference pipeline data flow."},
               {icon: <MessageSquare size={32}/>, title: "CBT Protocol", desc: "Embedded clinical logic ensuring adherence to evidence-based cognitive behavioral methodologies."},
               {icon: <Heart size={32}/>, title: "Framer Motion", desc: "Sophisticated motion design implemented to reduce cognitive load and enhance user calmness."} 
@@ -102,21 +105,19 @@ export default function Home() {
         </div>
       </Section>
 
-      {/* 5. START SESSION (Grand Finale) */}
+      {/* GRAND FINALE */}
       <Section className="bg-linear-to-t from-slate-100 to-slate-50">
-        {/* We attach the ref here so Framer Motion knows when this div is on screen */}
         <div ref={finaleRef} className="flex flex-col items-center max-w-2xl w-full">
             <BrainCircuit size={64} className="text-[#7B7AFA] mb-8" />
             <blockquote className="text-3xl font-medium text-slate-800 text-center italic mb-12 leading-snug">
                 "AI-powered clarity meets clinical precision. Our engine translates complex CBT methodologies into actionable, empathetic advice for your well-being."
             </blockquote>
             
-            {/* IN-FLOW BUTTON (Shows only when finale is in view) */}
-            <div className="h-20 flex items-center justify-center"> {/* Fixed height wrapper prevents text jumping */}
+            <div className="h-20 flex items-center justify-center">
               {isFinaleInView && (
                 <motion.button
-                  layoutId="start-session-btn" // Same ID as the floating button!
-                  onClick={() => setIsModalOpen(true)}
+                  layoutId="start-session-btn"
+                  onClick={() => setIsAuthModalOpen(true)}
                   className="px-12 py-5 bg-[#7B7AFA] text-white rounded-full text-xl font-medium hover:bg-indigo-600 transition-colors shadow-xl hover:shadow-indigo-300 active:scale-95 cursor-pointer"
                 >
                   Start Session
@@ -130,7 +131,17 @@ export default function Home() {
         </div>
       </Section>
 
-      <TermsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {/* MODAL COMPONENTS */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onAuthSuccess={handleAuthSuccess}
+      />
+      
+      <TermsModal 
+        isOpen={isTermsModalOpen} 
+        onClose={() => setIsTermsModalOpen(false)} 
+      />
     </div>
   );
 }

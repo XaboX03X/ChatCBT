@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Check, ArrowRight, Square } from 'lucide-react';
 
@@ -17,22 +17,47 @@ export default function ProgressiveMuscleRelaxation() {
   const [phase, setPhase] = useState('tense'); 
   const [timeLeft, setTimeLeft] = useState(10); 
 
+  // THE FIX: We use refs to let the interval read the current state safely
+  const phaseRef = useRef(phase);
+  const stageIndexRef = useRef(stageIndex);
+  const timeLeftRef = useRef(timeLeft);
+  
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { stageIndexRef.current = stageIndex; }, [stageIndex]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
+
   const currentStage = PMR_STAGES[stageIndex];
 
+  // THE FIX: The timer reads from the ref and ONLY uses the updater function for pure math.
+  // This completely stops React Strict Mode from double-firing the stage transitions.
   useEffect(() => {
     let interval;
     if (isActive && !isDone) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev > 1) return prev - 1;
-          handleNextPhase();
-          return 0; 
-        });
+        if (timeLeftRef.current > 1) {
+          setTimeLeft(prev => prev - 1); // Pure math, safe from strict mode
+        } else {
+          // Transition logic is moved safely OUTSIDE the state updater
+          if (phaseRef.current === 'tense') {
+            setPhase('release');
+            setTimeLeft(10); 
+          } else {
+            if (stageIndexRef.current < PMR_STAGES.length - 1) {
+              setStageIndex(stageIndexRef.current + 1); 
+              setPhase('tense');
+              setTimeLeft(10); 
+            } else {
+              setIsDone(true);
+              setIsActive(false);
+            }
+          }
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, isDone, phase, stageIndex]);
+  }, [isActive, isDone]);
 
+  // Manual Skip handler remains unchanged
   const handleNextPhase = () => {
     if (phase === 'tense') {
       setPhase('release');
@@ -83,16 +108,13 @@ export default function ProgressiveMuscleRelaxation() {
   // --- RENDER: IDLE/START STATE ---
   if (!isActive) {
     return (
-      // SHRUNK: padding reduced to px-6 py-4, justify-between to keep it anchored
       <div className="w-full h-full flex flex-col items-center justify-between bg-white px-6 py-4 overflow-hidden">
         
-        {/* SHRUNK: Margins and text sizes slightly reduced */}
         <div className="text-center shrink-0 mb-2 mt-2">
           <h2 className="text-xl font-bold text-slate-800 mb-1 tracking-tight">Progressive Muscle Relaxation</h2>
           <p className="text-slate-500 text-sm">Tense and release muscles to ease tension and anxiety.</p>
         </div>
 
-        {/* SHRUNK: space-y-3 to space-y-2, p-3 to px-3 py-2, w-8 to w-7 */}
         <div className="w-full max-w-xs flex-1 flex flex-col justify-center space-y-2 my-2">
           {PMR_STAGES.map((stage) => (
             <div key={stage.id} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-100 bg-slate-50">
@@ -104,7 +126,6 @@ export default function ProgressiveMuscleRelaxation() {
           ))}
         </div>
 
-        {/* SHRUNK: Button width and padding reduced */}
         <div className="shrink-0 mt-2 mb-2">
             <button onClick={startExercise} className="flex items-center justify-center gap-2 w-56 py-3 rounded-full font-bold text-base bg-[#7B7AFA] text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95">
             Start exercise
@@ -120,16 +141,13 @@ export default function ProgressiveMuscleRelaxation() {
   return (
     <div className="w-full h-full flex flex-col bg-white px-6 py-4 overflow-hidden">
       
-      {/* SHRUNK Header */}
       <div className="text-center shrink-0 mb-1 mt-1">
         <h2 className="text-xl font-bold text-slate-800 tracking-tight">{currentStage.name}</h2>
         <p className="text-slate-400 font-bold tracking-widest text-[10px] uppercase mt-0.5">Stage {currentStage.id} of 5</p>
       </div>
 
-      {/* SHRUNK 50/50 Split Area */}
-      <div className="flex-1 flex flex-row items-center justify-center w-full min-h-[200px] gap-4 shrink-0 my-2">
+      <div className="flex-1 flex flex-row items-center justify-center w-full min-h-50 gap-4 shrink-0 my-2">
         
-        {/* LEFT SIDE: Text & Timer */}
         <div className="w-1/2 flex flex-col items-center justify-center text-center p-1">
           <AnimatePresence mode="wait">
             <motion.div
@@ -152,7 +170,6 @@ export default function ProgressiveMuscleRelaxation() {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT SIDE: Dynamic Literal Visualizer (Shrunk to 40x40 from 48x48) */}
         <div className="w-1/2 flex items-center justify-center">
             <motion.div
                 animate={{
@@ -181,7 +198,6 @@ export default function ProgressiveMuscleRelaxation() {
 
       </div>
 
-      {/* SHRUNK Bottom Controls */}
       <div className="shrink-0 flex flex-col items-center mt-auto pb-1">
         <div className="flex gap-1.5 mb-3">
           {PMR_STAGES.map((_, idx) => (
