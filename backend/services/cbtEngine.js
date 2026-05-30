@@ -1,23 +1,43 @@
 // backend/services/cbtEngine.js
 
-export async function generateCBTResponse(userMessage, chatHistory, emotionContext, intent = 'SAFE') {
+import { determineRoute } from '../utils/semanticRouter.js';
+import { crisisProtocol } from '../prompts/crisisProtocol.js';
+import { empathyBuilder } from '../prompts/empathyBuilder.js';
+import { socraticReframe } from '../prompts/socraticReframe.js';
+import { sessionClosure } from '../prompts/sessionClosure.js';
+
+export async function generateCBTResponse(userMessage, chatHistory, emotionContext, anxietyScore) {
     const primaryEmotion = emotionContext[0]?.label || 'neutral';
     
-    // 1. MANDATORY MALAYSIAN DATA
-    const MY_HOTLINES = "Befrienders KL: 03-7627 2929, Talian Kasih: 15999, or Emergency Services: 999";
+    // 1. Calculate Conversation Depth
+    const turnCount = Math.floor(chatHistory.length / 2); 
 
-    // 2. IF CRISIS, DO NOT TRUST THE AI TO GENERATE - USE A TEMPLATE
-    if (intent === 'CRISIS') {
-        return `I'm here with you, but I'm very concerned about your safety. Please reach out to a professional who can help right now: ${MY_HOTLINES}. You don't have to go through this alone.`;
+    // 2. AWAIT the AI-driven semantic triage decision
+    const route = await determineRoute(userMessage, anxietyScore, turnCount);
+
+    // 3. HARD BYPASS FOR CRISIS (Zero Latency generation)
+    if (route === 'CRISIS') {
+        return {
+            reply: crisisProtocol, 
+            triggerToolkitGlow: false // No toolkit needed in a severe crisis, just human help
+        };
     }
 
-    // 3. STANDARD FLOW (For non-crisis messages)
-    const systemRole = `You are ChatCBT, an empathetic AI specializing in Cognitive Behavioral Therapy. 
-    Current Emotion: ${primaryEmotion}.
-    Instructions:
-    - Keep responses brief (max 3 sentences).
-    - If you mention a hotline, you MUST ONLY use: ${MY_HOTLINES}.
-    - Do NOT mention US-based services or 988.`;
+    // 4. DYNAMIC SYSTEM ROLE ASSIGNMENT
+    let systemRole = '';
+    switch(route) {
+        case 'EMPATHY':
+            systemRole = empathyBuilder(primaryEmotion);
+            break;
+        case 'SOCRATIC':
+            systemRole = socraticReframe(primaryEmotion);
+            break;
+        case 'CLOSURE':
+            systemRole = sessionClosure(primaryEmotion);
+            break;
+        default:
+            systemRole = socraticReframe(primaryEmotion);
+    }
 
     const messages = [
         { role: "system", content: systemRole },
@@ -26,6 +46,7 @@ export async function generateCBTResponse(userMessage, chatHistory, emotionConte
     ];
 
     try {
+        // 5. CORE INFERENCE FETCH
         const response = await fetch('http://127.0.0.1:11434/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -39,14 +60,33 @@ export async function generateCBTResponse(userMessage, chatHistory, emotionConte
         const data = await response.json();
         let aiContent = data.message.content;
 
-        // 4. THE FAILSAFE (Nuke any US numbers if the AI hallucinations them anyway)
+        // 6. THE REGIONAL FAILSAFE (Nuke any US numbers if the AI hallucinates them)
+        const MY_HOTLINES = "Befrienders KL: 03-7627 2929, Talian Kasih: 15999, or Emergency Services: 999";
         if (aiContent.includes("988") || aiContent.includes("1-800")) {
-            return `It sounds like you're going through a lot. Please contact local Malaysian support at ${MY_HOTLINES}. Can we focus on a small grounding exercise together?`;
+            aiContent = `It sounds like you're going through a lot. Please contact local Malaysian support at ${MY_HOTLINES}.`;
         }
 
-        return aiContent;
+        // 7. THE ACTION-FLAG PARSER (Fulfilling the Counselor's UI Requirement)
+        let triggerGlow = false;
+        
+        // Extract the hidden UI hook
+        if (aiContent.includes('[SHOW_TOOLKIT_GLOW]')) {
+            triggerGlow = true;
+            // Erase the raw tag so the frontend chat bubble remains perfectly clean
+            aiContent = aiContent.replace('[SHOW_TOOLKIT_GLOW]', '').trim();
+        }
+
+        // 8. RETURN FINAL STRUCTURED PAYLOAD
+        return {
+            reply: aiContent,
+            triggerToolkitGlow: triggerGlow
+        };
 
     } catch (error) {
-        return `I'm here for you. If you're in distress, please contact Befrienders KL at 03-7627 2929.`;
+        console.error("CBT Engine Generation Error:", error);
+        return {
+            reply: `I'm here for you. If you're in distress, please contact Befrienders KL at 03-7627 2929.`,
+            triggerToolkitGlow: false
+        };
     }
 }

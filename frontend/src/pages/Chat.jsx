@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, BrainCircuit, Heart, User, AlertTriangle, LifeBuoy, Activity, X, Volume2, VolumeX } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOutletContext } from 'react-router-dom';
-import AnxietyMeter from '../components/AnxietyMeter';
+import AnxietyMeter from '../components/EmotionMeter';
 import ExerciseModal from '../components/ExerciseModal'; 
 
 // 🔥 Import Database configurations
@@ -213,6 +213,7 @@ export default function Chat() {
     setMessages((prev) => [...prev, { id: validUserMsgId, text: currentText, sender: 'user', time: timeNow }]);
 
     try {
+      // (Optional but safe: Kept this pre-flight check intact so your UI's cbtFlow loading spinner doesn't break)
       const intentResponse = await fetch('http://localhost:5000/api/analyze-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: currentText })
       });
@@ -221,21 +222,23 @@ export default function Chat() {
       setCbtFlow(intentData.intent === 'CRISIS' ? 'crisis' : 'standard');
       setIsTyping(true);
 
+      // 1. Fetch from the upgraded unified backend pipeline
       const chatResponse = await fetch('http://localhost:5000/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: currentText, history: messages.map(m => ({ role: m.sender, content: m.text })) })
       });
       const chatData = await chatResponse.json();
       
+      // 2. Destructure the exact payloads sent by the new Semantic Router
       const newScore = chatData.anxietyScore || anxietyScore;
       if (chatData.anxietyScore) setAnxietyScore(chatData.anxietyScore);
       
-      // 🔥 THE IMPROVISED NUDGE LOGIC
-      if (newScore >= 7.0 || intentData.intent === 'CRISIS') {
-          setHighlightToolkit(true); // Triggers the visual nudge instead of the modal
+      // 🔥 3. THE CLINICIAN'S UAT FIX: Trigger the animation strictly from the backend flag
+      if (chatData.triggerToolkitGlow === true) {
+          setHighlightToolkit(true); 
       }
 
-      // Save AI Message
-      const aiResponseText = chatData.reply || chatData.cbt_response;
+      // 4. Save AI Message using the sanitized text (the hidden tag is already stripped by the backend)
+      const aiResponseText = chatData.reply; 
       const aiMsgId = await saveMessageToDB('ai', aiResponseText, newScore);
       const validAiMsgId = aiMsgId || Date.now() + 1;
       

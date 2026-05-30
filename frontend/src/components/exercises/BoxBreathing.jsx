@@ -2,6 +2,30 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Square } from 'lucide-react';
 
+// A simple, clean electronic "ting" audio element using Web Audio API
+const playTingSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, context.currentTime); // High pitch "ting"
+    gainNode.gain.setValueAtTime(0.05, context.currentTime); // Soft volume
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.08); // Short 80ms beep
+  } catch (error) {
+    console.error("Audio playback failed:", error);
+  }
+};
+
 export default function BoxBreathing() {
   const [isActive, setIsActive] = useState(false);
   const [phase, setPhase] = useState('idle'); 
@@ -17,6 +41,9 @@ export default function BoxBreathing() {
     let interval;
     if (isActive) {
       interval = setInterval(() => {
+        // TRIGGER THE AUDIO BEEP ON EVERY SECOND TICK
+        playTingSound();
+
         setTimeLeft((prevTime) => {
           if (prevTime > 1) return prevTime - 1;
 
@@ -46,6 +73,8 @@ export default function BoxBreathing() {
       setPhase('inhale');
       setTimeLeft(4);
       setIsActive(true);
+      // Optional: Play an initial tick the exact moment they start the exercise
+      playTingSound();
     } else {
       setIsActive(false);
       setPhase('idle');
@@ -98,7 +127,6 @@ export default function BoxBreathing() {
     }
   };
 
-  // THE FIX: Added a quick 0.2s transition to the idle state to ensure a smooth reset
   const sphereVariants = {
       idle: { backgroundColor: '#f0f9ff', borderColor: '#e0f2fe', transition: { duration: 0.2 } },
       inhale: { backgroundColor: '#e0f2fe', borderColor: '#bae6fd', transition: { duration: 4, ease: "linear" } },
@@ -122,7 +150,6 @@ export default function BoxBreathing() {
 
       <div className="relative flex items-center justify-center w-72 h-72 flex-none">
           
-          {/* THE FIX: Apply Nuclear Unmount to the inner sphere to prevent cache freezing */}
           {isActive ? (
             <motion.div 
               key={`active-sphere-${sessionKey}`}
@@ -141,7 +168,6 @@ export default function BoxBreathing() {
             />
           )}
 
-          {/* THE LIVELY OUTER RING */}
           {isActive ? (
             <motion.div 
               key={`active-ring-${sessionKey}`} 

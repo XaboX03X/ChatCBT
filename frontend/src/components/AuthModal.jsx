@@ -39,11 +39,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   };
 
   const handleGuestBypass = async () => {
-  if (import.meta.env.VITE_USE_MOCK_DB === 'true') {
-      handleClose();
-      navigate('/chat');
-      return;
-  }
     try {
       setIsLoading(true);
       setAuthError('');

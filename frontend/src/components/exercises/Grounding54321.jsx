@@ -2,12 +2,28 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Hand, Ear, Wind, Coffee, Check, Loader2 } from 'lucide-react';
 
+// 1. ADDED ANIMATION PROPERTIES FOR EACH SENSE
 const GROUNDING_STAGES = [
-  { count: 5, sense: "see", icon: Eye, color: "text-emerald-500", bg: "bg-emerald-100", ring: "focus:ring-emerald-500 border-emerald-200", prompt: "Acknowledge things you can see around you." },
-  { count: 4, sense: "physically feel", icon: Hand, color: "text-amber-500", bg: "bg-amber-100", ring: "focus:ring-amber-500 border-amber-200", prompt: "Acknowledge things you can physically touch or feel." },
-  { count: 3, sense: "hear", icon: Ear, color: "text-sky-500", bg: "bg-sky-100", ring: "focus:ring-sky-500 border-sky-200", prompt: "Acknowledge things you can hear right now." },
-  { count: 2, sense: "smell", icon: Wind, color: "text-purple-500", bg: "bg-purple-100", ring: "focus:ring-purple-500 border-purple-200", prompt: "Acknowledge things you can smell." },
-  { count: 1, sense: "taste", icon: Coffee, color: "text-rose-500", bg: "bg-rose-100", ring: "focus:ring-rose-500 border-rose-200", prompt: "Acknowledge one thing you can taste." }
+  { 
+    count: 5, sense: "see", icon: Eye, color: "text-emerald-500", bg: "bg-emerald-100", ring: "focus:ring-emerald-500 border-emerald-200", prompt: "Acknowledge things you can see around you.",
+    animation: { x: [-8, 8, -8], transition: { repeat: Infinity, duration: 2.5, ease: "easeInOut" } } // Lively eyes looking left and right
+  },
+  { 
+    count: 4, sense: "physically feel", icon: Hand, color: "text-amber-500", bg: "bg-amber-100", ring: "focus:ring-amber-500 border-amber-200", prompt: "Acknowledge things you can physically touch or feel.",
+    animation: { scale: [1, 1.15, 1], transition: { repeat: Infinity, duration: 1.5, ease: "easeInOut" } } // Pulsing/tapping touch
+  },
+  { 
+    count: 3, sense: "hear", icon: Ear, color: "text-sky-500", bg: "bg-sky-100", ring: "focus:ring-sky-500 border-sky-200", prompt: "Acknowledge things you can hear right now.",
+    animation: { rotate: [-15, 15, -15], transition: { repeat: Infinity, duration: 1.2, ease: "easeInOut" } } // Wiggling/listening ear
+  },
+  { 
+    count: 2, sense: "smell", icon: Wind, color: "text-purple-500", bg: "bg-purple-100", ring: "focus:ring-purple-500 border-purple-200", prompt: "Acknowledge things you can smell.",
+    animation: { y: [-5, 5, -5], opacity: [0.6, 1, 0.6], transition: { repeat: Infinity, duration: 2, ease: "easeInOut" } } // Floating scent wave
+  },
+  { 
+    count: 1, sense: "taste", icon: Coffee, color: "text-rose-500", bg: "bg-rose-100", ring: "focus:ring-rose-500 border-rose-200", prompt: "Acknowledge one thing you can taste.",
+    animation: { rotate: [-8, 8, -8], transition: { repeat: Infinity, duration: 2.5, ease: "easeInOut" } } // Gently rocking cup
+  }
 ];
 
 export default function Grounding54321() {
@@ -66,17 +82,19 @@ export default function Grounding54321() {
   const Icon = currentStage.icon;
 
   return (
-    // STRICT FLEXBOX: h-full and overflow-hidden ensures absolutely zero scrolling.
     <div className="flex flex-col items-center max-w-3xl mx-auto w-full h-full p-6 overflow-hidden">
       
-      {/* HEADER: shrink-0 protects it from getting crushed */}
+      {/* HEADER */}
       <motion.div 
         key={`header-${stageIndex}`}
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="text-center mb-6 w-full shrink-0 mt-2"
       >
-        <div className={`w-14 h-14 mx-auto rounded-full ${currentStage.bg} ${currentStage.color} flex items-center justify-center mb-4 shadow-sm`}>
-          <Icon size={28} />
+        {/* 2. INCREASED CONTAINER & ICON SIZE FOR BETTER VISUAL DESCRIPTIVENESS */}
+        <div className={`w-20 h-20 mx-auto rounded-full ${currentStage.bg} ${currentStage.color} flex items-center justify-center mb-4 shadow-sm overflow-hidden`}>
+          <motion.div animate={currentStage.animation}>
+            <Icon size={40} strokeWidth={2.5} />
+          </motion.div>
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-1">
           Find {currentStage.count} {currentStage.count === 1 ? 'thing' : 'things'} you can {currentStage.sense}
@@ -100,7 +118,7 @@ export default function Grounding54321() {
         ))}
       </div>
 
-      {/* SLIM INPUT AREA: Now directly under the dots and max-width restricted */}
+      {/* SLIM INPUT AREA */}
       <div className="w-full max-w-md shrink-0 h-22.5 relative z-10">
         <AnimatePresence mode="wait">
           {!isTransitioning ? (
@@ -115,7 +133,6 @@ export default function Grounding54321() {
                 onChange={(e) => setCurrentInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Type 1 thing & press Enter...`}
-                // NARROWER & SLIMMER: py-3 px-5, text-lg, rounded-xl, ring-2
                 className={`w-full py-3 px-5 text-lg text-center bg-white border-2 border-slate-100 rounded-xl shadow-sm focus:outline-none focus:border-transparent focus:ring-2 transition-all ${currentStage.ring}`}
               />
               <p className="text-center text-slate-400 mt-3 font-medium uppercase tracking-widest text-xs">
@@ -135,7 +152,7 @@ export default function Grounding54321() {
         </AnimatePresence>
       </div>
 
-      {/* ANSWER CHIPS "BUCKET": Chips drop down here, filling the remaining space */}
+      {/* ANSWER CHIPS "BUCKET" */}
       <div className="flex-1 w-full flex flex-wrap content-start justify-center gap-2 mt-6">
         <AnimatePresence>
           {answers.map((ans, idx) => (

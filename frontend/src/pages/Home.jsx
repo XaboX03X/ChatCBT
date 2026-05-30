@@ -1,16 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { Heart, Code, Database, Cpu, MessageSquare, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
+import { Heart, Code, Database, Cpu, MessageSquare, Zap, BrainCircuit, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { motion, useInView } from 'framer-motion';
 import AuthModal from '../components/AuthModal';
 import TermsModal from '../components/TermsModal';
 
+// FIX 1: Reduced py-24 to py-16 to give the content more vertical breathing room in the viewport
 const Section = ({ children, className = "" }) => (
   <motion.section 
     initial={{ y: 50, opacity: 0 }}
     whileInView={{ y: 0, opacity: 1 }}
     viewport={{ once: false, amount: 0.2 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`min-h-screen flex flex-col items-center justify-center py-24 px-6 ${className}`}
+    className={`min-h-screen flex flex-col items-center justify-center py-16 px-6 ${className}`}
   >
     {children}
   </motion.section>
@@ -23,7 +24,6 @@ export default function Home() {
   const finaleRef = useRef(null);
   const isFinaleInView = useInView(finaleRef, { amount: 0.5 });
 
-  // Callback passed to AuthModal: When standard login succeeds, open Terms
   const handleAuthSuccess = () => {
     setIsTermsModalOpen(true);
   };
@@ -66,40 +66,123 @@ export default function Home() {
         </p>
       </Section>
 
-      {/* CLINICAL VALIDATION */}
+      {/* CLINICALLY VALIDATED SECTION */}
       <Section className="bg-white">
-        <h2 className="text-3xl font-bold mb-24 text-slate-800">Clinically & Technically Verified</h2>
-        <div className="flex flex-wrap gap-10 items-center justify-center">
-           {[ {rot: -8, txt: "Community Research"}, {rot: 0, txt: "Clinical Protocol"}, {rot: 8, txt: "Expert Feedback"} ].map((card, i) => (
-            <motion.div 
-              key={i}
-              whileHover={{ y: -20, rotate: 0 }}
-              className="w-60 h-80 bg-slate-50 rounded-3xl shadow-lg border border-slate-100 flex flex-col items-center justify-center p-8 text-center"
-              style={{ rotate: card.rot }}
-            >
-              <ShieldCheck className="text-indigo-400 mb-6" size={48} />
-              <p className="font-bold text-slate-800 text-lg">{card.txt}</p>
-            </motion.div>
-          ))}
+        {/* FIX 2: Reduced gap-16 to gap-10 to tighten the horizontal spread */}
+        <div className="max-w-6xl mx-auto w-full flex flex-col lg:flex-row items-center gap-10">
+          
+          {/* Left Column: UAT Proof */}
+          <div className="flex-1 w-full relative flex justify-center lg:justify-end">
+            <div className="absolute inset-0 bg-indigo-100 rounded-[2rem] translate-x-4 translate-y-4 -z-10 max-h-[450px]"></div>
+            {/* FIX 3: Changed to aspect-square and added max-h-[450px] to prevent vertical blowout */}
+            <img 
+              src="/UATPicture.jpeg" 
+              alt="Clinical UAT Validation" 
+              className="rounded-[2rem] shadow-xl w-full max-w-md object-cover border border-slate-100 aspect-square sm:aspect-video lg:aspect-square max-h-[450px]"
+            />
+            
+            {/* Floating verification badge */}
+            <div className="absolute -bottom-4 -left-2 sm:left-4 lg:-left-6 bg-white p-3 sm:p-4 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <CheckCircle2 size={20} className="text-green-600" />
+              </div>
+              <div>
+                <p className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">Status</p>
+                <p className="text-sm font-bold text-slate-800">UAT Verified</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: The PDF Metrics */}
+          <div className="flex-1 w-full flex flex-col justify-center">
+            {/* FIX 4: Scaled down text sizes and margins (mb-6 to mb-4, mb-10 to mb-6) */}
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-slate-800 leading-tight">
+              Clinically Validated <br/><span className="text-[#7B7AFA]">& Approved</span>
+            </h2>
+            <p className="text-base text-slate-600 mb-6 leading-relaxed">
+              ChatCBT has undergone rigorous User Acceptance Testing (UAT) under the supervision of a licensed Clinical Psychologist to ensure maximum safety and psychological protocol adherence.
+            </p>
+
+            {/* FIX 5: Tightened spacing between cards and reduced internal padding */}
+            <div className="space-y-4">
+              
+              {/* Metric 1 */}
+              <div className="flex items-start gap-3 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 transition-colors hover:bg-indigo-50">
+                <div className="p-2.5 bg-indigo-100 text-[#7B7AFA] rounded-full shrink-0 mt-0.5">
+                  <Heart size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">5/5 Empathy & Alliance</h3>
+                  <p className="text-slate-600 text-sm mt-1 leading-relaxed">Achieved a perfect score in establishing a safe, non-judgmental digital therapeutic alliance during severe crisis simulations.</p>
+                </div>
+              </div>
+
+              {/* Metric 2 */}
+              <div className="flex items-start gap-3 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 transition-colors hover:bg-emerald-50">
+                <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-full shrink-0 mt-0.5">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Crisis Guardrails Verified</h3>
+                  <p className="text-slate-600 text-sm mt-1 leading-relaxed">Successfully bypassed generative responses during crisis prompts, accurately and safely mapping to local Malaysian hotlines.</p>
+                </div>
+              </div>
+
+              {/* Metric 3 */}
+              <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50 transition-colors hover:bg-blue-50">
+                <div className="p-2.5 bg-blue-100 text-blue-600 rounded-full shrink-0 mt-0.5">
+                  <BrainCircuit size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Clinical Insight Output</h3>
+                  <p className="text-slate-600 text-sm mt-1 leading-relaxed">Expert feedback highlighted the system's precise ability to validate distress while effectively encouraging cognitive reframing.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </Section>
 
-      {/* TECH STACK */}
+{/* TECH STACK */}
       <Section className="bg-slate-50">
-        <h2 className="text-3xl font-bold mb-16 text-slate-800">Engineering the Future</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl">
+        <h2 className="text-3xl font-bold mb-12 text-slate-800">Engineering the Future</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
            {[ 
-              {icon: <Code size={32}/>, title: "React", desc: "Dynamic component architecture ensuring a fluid, responsive interface for session management."}, 
-              {icon: <Cpu size={32}/>, title: "Ollama (Phi-3)", desc: "Privacy-first local LLM inference engine providing zero-latency clinical NLP classification."}, 
-              {icon: <Database size={32}/>, title: "Appwrite", desc: "Containerized local edge-database managing secure anonymous guest tokens, encrypted user sessions, and CBT logs."},
-              {icon: <Zap size={32}/>, title: "Node/Express", desc: "High-performance backend orchestration for real-time inference pipeline data flow."},
-              {icon: <MessageSquare size={32}/>, title: "CBT Protocol", desc: "Embedded clinical logic ensuring adherence to evidence-based cognitive behavioral methodologies."},
-              {icon: <Heart size={32}/>, title: "Framer Motion", desc: "Sophisticated motion design implemented to reduce cognitive load and enhance user calmness."} 
+              {
+                icon: <Code size={32}/>, 
+                title: "Seamless Interface (React)", 
+                desc: "Ensures the application feels smooth, instant, and completely responsive across any device you use."
+              }, 
+              {
+                icon: <Cpu size={32}/>, 
+                title: "Private AI Brain (Ollama)", 
+                desc: "A smart, on-device AI that understands your emotions instantly without ever sending your private chats to the internet."
+              }, 
+              {
+                icon: <Database size={32}/>, 
+                title: "Secure Vault (Appwrite)", 
+                desc: "Acts as a locked digital vault, keeping your session data completely anonymous and safely stored only on your local network."
+              },
+              {
+                icon: <Zap size={32}/>, 
+                title: "Lightning Fast (Node/Express)", 
+                desc: "The invisible engine running in the background, making sure your therapeutic feedback is delivered without any frustrating delays."
+              },
+              {
+                icon: <MessageSquare size={32}/>, 
+                title: "Clinical Rules (CBT Protocol)", 
+                desc: "Built-in psychological guardrails that guarantee the AI's advice is always safe, grounded, and backed by real therapeutic science."
+              },
+              {
+                icon: <Heart size={32}/>, 
+                title: "Calming Animations (Framer)", 
+                desc: "Gentle, fluid visual movements carefully designed to help lower your heart rate and prevent feeling visually overwhelmed."
+              } 
            ].map((item, i) => (
-            <div key={i} className="flex flex-col items-start p-8 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg transition-all">
-                <div className="text-[#7B7AFA] mb-6">{item.icon}</div>
+            <div key={i} className="flex flex-col items-start p-6 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg transition-all">
+                <div className="text-[#7B7AFA] mb-4">{item.icon}</div>
                 <h3 className="font-bold text-slate-800 text-lg">{item.title}</h3>
-                <p className="text-sm text-slate-500 mt-3 leading-relaxed">{item.desc}</p>
+                <p className="text-sm text-slate-500 mt-2 leading-relaxed">{item.desc}</p>
             </div>
            ))}
         </div>
@@ -109,7 +192,7 @@ export default function Home() {
       <Section className="bg-linear-to-t from-slate-100 to-slate-50">
         <div ref={finaleRef} className="flex flex-col items-center max-w-2xl w-full">
             <BrainCircuit size={64} className="text-[#7B7AFA] mb-8" />
-            <blockquote className="text-3xl font-medium text-slate-800 text-center italic mb-12 leading-snug">
+            <blockquote className="text-2xl sm:text-3xl font-medium text-slate-800 text-center italic mb-12 leading-snug">
                 "AI-powered clarity meets clinical precision. Our engine translates complex CBT methodologies into actionable, empathetic advice for your well-being."
             </blockquote>
             

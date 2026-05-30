@@ -15,6 +15,12 @@ export default function ExerciseModal({ isOpen, onClose }) {
     { id: 'muscle', icon: <Activity />, title: "Muscle Relaxation" } 
   ];
 
+  const microBenefits = {
+    grounding: "Helps you stop overthinking by focusing on what's around you.",
+    breathing: "Naturally slows down your heartbeat to help you feel calm.",
+    muscle: "Relaxes tight muscles so your body knows it is safe."
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -29,20 +35,29 @@ export default function ExerciseModal({ isOpen, onClose }) {
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full h-[85vh] lg:h-[80vh] overflow-hidden relative z-10 flex flex-col"
+            /* FIX 1: Changed h-[85vh] lg:h-[80vh] to h-[90vh] lg:h-[85vh]. 
+               This gives the modal the exact amount of extra vertical room needed 
+               to fit the new micro-benefit text without crushing the exercises.
+            */
+            className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full h-[90vh] lg:h-[85vh] overflow-hidden relative z-10 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-white border-b border-slate-100 p-4 sm:p-6 flex justify-between items-center shrink-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">CBT Safety Toolkit</h2>
-              <button onClick={onClose} className="p-2 sm:p-3 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-full transition-colors cursor-pointer">
+            <div className="bg-white border-b border-slate-100 p-4 sm:p-5 flex justify-between items-start shrink-0">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">CBT Safety Toolkit</h2>
+                <p className="text-xs sm:text-sm text-[#7B7AFA] font-medium mt-1">
+                  {microBenefits[activeTab]}
+                </p>
+              </div>
+              <button onClick={onClose} className="p-2 sm:p-3 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-full transition-colors cursor-pointer shrink-0 mt-1 sm:mt-0">
                 <X size={20} className="sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            {/* 🔥 Dynamic Flex layout: row on desktop, col on mobile */}
+            {/* Layout Container */}
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
               
-              {/* Sidebar / Top Navigation Bar */}
+              {/* Sidebar */}
               <div className="w-full md:w-80 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-100 p-3 sm:p-6 flex flex-row md:flex-col gap-2 md:gap-3 overflow-x-auto shrink-0 scrollbar-hide">
                 {tabs.map((tab) => (
                   <button
@@ -60,7 +75,10 @@ export default function ExerciseModal({ isOpen, onClose }) {
                 ))}
               </div>
 
-              {/* Dynamic Content Area */}
+              {/* FIX 2: Completely removed my toxic padding and wrappers. 
+                  This is restored exactly to your original, clean code so your 
+                  components have their full space back and the buttons won't clip.
+              */}
               <div className="flex-1 bg-white relative overflow-hidden flex flex-col">
                 {activeTab === 'breathing' && <BoxBreathing />}
                 {activeTab === 'grounding' && <Grounding54321 />}

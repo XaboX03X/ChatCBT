@@ -5,3 +5,5 @@ build/
 .DS_Store
 *.log
 .my_ai_cache/
+appwrite/
+frontend/.env

@@ -10,6 +10,55 @@ const PMR_STAGES = [
   { id: 5, name: "LEGS & FEET", tense: "Stretch your legs and tense your thighs and calves.", release: "Relax your legs and notice heaviness and warmth.", tIcon: "🦵", rIcon: "🦶" }
 ];
 
+// 1. THE PER-SECOND "TING" (Very soft, short duration so it isn't annoying)
+const playTickSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, context.currentTime); // High pitch
+    gainNode.gain.setValueAtTime(0.02, context.currentTime); // Very quiet volume
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.05); // Extremely short 50ms tick
+  } catch (error) {
+    console.error("Audio playback failed:", error);
+  }
+};
+
+// 2. THE STAGE COMPLETION CHIME (Deeper, therapeutic fade-out)
+const playCompletionChime = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    
+    oscillator.type = 'triangle'; 
+    oscillator.frequency.setValueAtTime(523.25, context.currentTime); // C5 note
+    gainNode.gain.setValueAtTime(0.1, context.currentTime); 
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    
+    oscillator.start();
+    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.4);
+    oscillator.stop(context.currentTime + 0.4);
+  } catch (error) {
+    console.error("Audio playback failed:", error);
+  }
+};
+
 export default function ProgressiveMuscleRelaxation() {
   const [isActive, setIsActive] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -17,7 +66,6 @@ export default function ProgressiveMuscleRelaxation() {
   const [phase, setPhase] = useState('tense'); 
   const [timeLeft, setTimeLeft] = useState(10); 
 
-  // THE FIX: We use refs to let the interval read the current state safely
   const phaseRef = useRef(phase);
   const stageIndexRef = useRef(stageIndex);
   const timeLeftRef = useRef(timeLeft);
@@ -28,16 +76,18 @@ export default function ProgressiveMuscleRelaxation() {
 
   const currentStage = PMR_STAGES[stageIndex];
 
-  // THE FIX: The timer reads from the ref and ONLY uses the updater function for pure math.
-  // This completely stops React Strict Mode from double-firing the stage transitions.
   useEffect(() => {
     let interval;
     if (isActive && !isDone) {
       interval = setInterval(() => {
         if (timeLeftRef.current > 1) {
-          setTimeLeft(prev => prev - 1); // Pure math, safe from strict mode
+          // 3. TRIGGER THE SOFT TICK EVERY SECOND
+          playTickSound();
+          setTimeLeft(prev => prev - 1); 
         } else {
-          // Transition logic is moved safely OUTSIDE the state updater
+          // 4. TRIGGER THE DEEPER CHIME ON COMPLETION
+          playCompletionChime();
+          
           if (phaseRef.current === 'tense') {
             setPhase('release');
             setTimeLeft(10); 
@@ -57,8 +107,9 @@ export default function ProgressiveMuscleRelaxation() {
     return () => clearInterval(interval);
   }, [isActive, isDone]);
 
-  // Manual Skip handler remains unchanged
   const handleNextPhase = () => {
+    playCompletionChime();
+    
     if (phase === 'tense') {
       setPhase('release');
       setTimeLeft(10); 
@@ -80,6 +131,8 @@ export default function ProgressiveMuscleRelaxation() {
     setTimeLeft(10); 
     setIsDone(false);
     setIsActive(true);
+    // Play initial tick right when they start
+    playTickSound();
   };
 
   const resetExercise = () => {
@@ -89,7 +142,6 @@ export default function ProgressiveMuscleRelaxation() {
     setPhase('tense');
   };
 
-  // --- RENDER: DONE STATE ---
   if (isDone) {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center w-full h-full px-6 py-4 bg-white overflow-hidden text-center">
@@ -105,11 +157,9 @@ export default function ProgressiveMuscleRelaxation() {
     );
   }
 
-  // --- RENDER: IDLE/START STATE ---
   if (!isActive) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-between bg-white px-6 py-4 overflow-hidden">
-        
         <div className="text-center shrink-0 mb-2 mt-2">
           <h2 className="text-xl font-bold text-slate-800 mb-1 tracking-tight">Progressive Muscle Relaxation</h2>
           <p className="text-slate-500 text-sm">Tense and release muscles to ease tension and anxiety.</p>
@@ -135,7 +185,6 @@ export default function ProgressiveMuscleRelaxation() {
     );
   }
 
-  // --- RENDER: ACTIVE EXERCISE STATE (SIDE-BY-SIDE) ---
   const isTense = phase === 'tense';
 
   return (
