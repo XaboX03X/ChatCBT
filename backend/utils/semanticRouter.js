@@ -34,21 +34,18 @@ export async function determineRoute(userMessage, anxietyScore, turnCount) {
         const data = await response.json();
         const aiVerdict = data.response?.trim().toUpperCase() || '';
 
-        // 3. Evaluate AI Semantic Verdict
+        // 3. Evaluate AI Semantic Verdict (NO MORE MATH GATEKEEPING)
         if (aiVerdict.includes('CRISIS')) return 'CRISIS';
-        if (aiVerdict.includes('CLOSURE') && turnCount >= 3) return 'CLOSURE';
+        if (aiVerdict.includes('CLOSURE')) return 'CLOSURE'; 
         if (aiVerdict.includes('EMPATHY')) return 'EMPATHY';
         if (aiVerdict.includes('SOCRATIC')) return 'SOCRATIC';
 
-        // 4. Algorithmic Fallback Layer (Using your EMA anxiety metric)
-        if (anxietyScore >= 7.0 || turnCount <= 2) {
-            return 'EMPATHY';
-        }
+        // 4. Clean Fallback Layer (If the AI outputs gibberish, default to Socratic reflection)
         return 'SOCRATIC';
 
     } catch (error) {
         // 5. Safe structural fallback if the local inference endpoint is jammed
         console.error("Semantic Router Error:", error);
-        return (anxietyScore >= 7.0) ? 'EMPATHY' : 'SOCRATIC';
+        return 'SOCRATIC'; 
     }
 }

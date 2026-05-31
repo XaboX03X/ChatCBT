@@ -11,6 +11,7 @@ import { account, databases, DATABASE_ID, COLLECTION_ID, ID, Query } from '../li
 export default function Chat() {
   const [inputText, setInputText] = useState('');
   const [anxietyScore, setAnxietyScore] = useState(2.0);
+  const [currentEmotion, setCurrentEmotion] = useState('neutral'); // NEW: Emotion text state
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([]);
   
@@ -21,7 +22,7 @@ export default function Chat() {
   const [showMobileMeter, setShowMobileMeter] = useState(false); 
   const [speakingId, setSpeakingId] = useState(null); 
   
-  // 🔥 New state to track if the toolkit icon should be highlighted
+  // 🔥 Track if the toolkit icon should be highlighted
   const [highlightToolkit, setHighlightToolkit] = useState(false);
   
   // 🔥 Track the current session user
@@ -140,7 +141,7 @@ export default function Chat() {
       return () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); };
   }, []);
 
-// 🔥 2. FULLY BULLETPROOF DATABASE SAVER (With Fallback)
+  // 🔥 2. FULLY BULLETPROOF DATABASE SAVER (With Fallback)
   const saveMessageToDB = async (sender, text, currentScore = null) => {
     if (!currentUser) return null;
     
@@ -156,7 +157,6 @@ export default function Chat() {
       };
 
       let hasScore = false;
-      // Add the score if it exists
       if (currentScore !== null && currentScore !== undefined) {
           const parsedScore = parseFloat(currentScore);
           if (!isNaN(parsedScore)) {
@@ -166,7 +166,6 @@ export default function Chat() {
       }
 
       try {
-        // ATTEMPT 1: Try to save the full message with the score
         const doc = await databases.createDocument(
           DATABASE_ID,
           COLLECTION_ID,
@@ -176,10 +175,9 @@ export default function Chat() {
         return doc.$id;
         
       } catch (primaryError) {
-        // ATTEMPT 2: If Appwrite rejects the score column, strip it and try again!
         if (hasScore) {
             console.warn("Appwrite rejected the anxietyScore column. Attempting fallback save...");
-            delete payload.anxietyScore; // Remove the problematic data
+            delete payload.anxietyScore; 
             
             const fallbackDoc = await databases.createDocument(
               DATABASE_ID,
@@ -189,7 +187,7 @@ export default function Chat() {
             );
             return fallbackDoc.$id;
         } else {
-            throw primaryError; // If it didn't have a score and still failed, throw it to the main catch block
+            throw primaryError; 
         }
       }
       
@@ -207,13 +205,11 @@ export default function Chat() {
     const timeNow = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     setInputText('');
 
-    // Save User Message
     const userMsgId = await saveMessageToDB('user', currentText);
     const validUserMsgId = userMsgId || Date.now();
     setMessages((prev) => [...prev, { id: validUserMsgId, text: currentText, sender: 'user', time: timeNow }]);
 
     try {
-      // (Optional but safe: Kept this pre-flight check intact so your UI's cbtFlow loading spinner doesn't break)
       const intentResponse = await fetch('http://localhost:5000/api/analyze-intent', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: currentText })
       });
@@ -222,22 +218,20 @@ export default function Chat() {
       setCbtFlow(intentData.intent === 'CRISIS' ? 'crisis' : 'standard');
       setIsTyping(true);
 
-      // 1. Fetch from the upgraded unified backend pipeline
       const chatResponse = await fetch('http://localhost:5000/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: currentText, history: messages.map(m => ({ role: m.sender, content: m.text })) })
       });
       const chatData = await chatResponse.json();
       
-      // 2. Destructure the exact payloads sent by the new Semantic Router
+      // NEW: Destructure both the score AND the emotion
       const newScore = chatData.anxietyScore || anxietyScore;
       if (chatData.anxietyScore) setAnxietyScore(chatData.anxietyScore);
+      if (chatData.detectedEmotion) setCurrentEmotion(chatData.detectedEmotion);
       
-      // 🔥 3. THE CLINICIAN'S UAT FIX: Trigger the animation strictly from the backend flag
       if (chatData.triggerToolkitGlow === true) {
           setHighlightToolkit(true); 
       }
 
-      // 4. Save AI Message using the sanitized text (the hidden tag is already stripped by the backend)
       const aiResponseText = chatData.reply; 
       const aiMsgId = await saveMessageToDB('ai', aiResponseText, newScore);
       const validAiMsgId = aiMsgId || Date.now() + 1;
@@ -358,12 +352,11 @@ export default function Chat() {
         
         <div className="p-3 md:p-4 bg-white/50 border-t border-white shrink-0">
             <div className="flex items-center max-w-3xl mx-auto gap-2 md:gap-3">
-                {/* 🔥 THE IMPROVISED TOOLKIT BUTTON */}
                 <button 
                     type="button" 
                     onClick={() => {
                         setIsExerciseModalOpen(true);
-                        setHighlightToolkit(false); // Turn off the flash when clicked
+                        setHighlightToolkit(false); 
                     }} 
                     className={`p-3 md:p-3.5 rounded-full flex items-center justify-center shrink-0 cursor-pointer transition-all duration-300 ${
                         highlightToolkit 
@@ -385,8 +378,9 @@ export default function Chat() {
         </div>
       </div>
       
-      <div className="hidden lg:block w-80 shrink-0">
-          <AnxietyMeter currentScore={anxietyScore} />
+      {/* --- THE LAYOUT FIX: Added flex-col and justify-end to align bottom edges --- */}
+      <div className="hidden lg:flex flex-col justify-end w-80 shrink-0 h-full">
+          <AnxietyMeter currentScore={anxietyScore} currentEmotion={currentEmotion} />
       </div>
 
       <AnimatePresence>
@@ -396,7 +390,7 @@ export default function Chat() {
                     <button onClick={() => setShowMobileMeter(false)} className="absolute -top-3 -left-3 z-50 p-1.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-full text-slate-500 shadow-md transition-all cursor-pointer">
                         <X size={16} />
                     </button>
-                    <AnxietyMeter currentScore={anxietyScore} />
+                    <AnxietyMeter currentScore={anxietyScore} currentEmotion={currentEmotion} />
                 </div>
             </motion.div>
         )}

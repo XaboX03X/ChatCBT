@@ -39,9 +39,16 @@ export async function generateCBTResponse(userMessage, chatHistory, emotionConte
             systemRole = socraticReframe(primaryEmotion);
     }
 
+    // ---------------------------------------------------------
+    // THE FIX: SLIDING WINDOW MEMORY BUFFER
+    // We slice the array to only keep the 4 most recent messages.
+    // This allows the AI to transition smoothly out of a crisis state.
+    // ---------------------------------------------------------
+    const recentHistory = chatHistory.slice(-4);
+
     const messages = [
         { role: "system", content: systemRole },
-        ...chatHistory, 
+        ...recentHistory, 
         { role: "user", content: userMessage }
     ];
 

@@ -60,7 +60,8 @@ app.post('/api/chat', async (req, res) => {
             success: true,
             reply: aiResponse.reply,
             triggerToolkitGlow: aiResponse.triggerToolkitGlow,
-            anxietyScore: currentSessionAnxiety
+            anxietyScore: currentSessionAnxiety,
+            detectedEmotion: emotions[0]?.label || 'neutral'
         });
 
     } catch (error) {
